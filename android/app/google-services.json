@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "20244546683",
+    "project_id": "proj-testing-f0009",
+    "storage_bucket": "proj-testing-f0009.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:20244546683:android:10811df64a6ac11113cede",
+        "android_client_info": {
+          "package_name": "com.best.history.quiz"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "20244546683-ofr9f894ej60p3jqdfiklvfl53gpjoqv.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBuvDDJsyTWQ0i0dlFHWKuYb7rizh9_k6k"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "20244546683-ofr9f894ej60p3jqdfiklvfl53gpjoqv.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
