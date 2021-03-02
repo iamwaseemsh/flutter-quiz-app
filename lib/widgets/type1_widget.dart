@@ -6,6 +6,9 @@ import 'package:fluttertoast/fluttertoast.dart';
 class Type1Options extends StatefulWidget {
   final List<String> options;
   final Function checkAnswer;
+  final int hintsNo;
+  final Function reduceHint;
+  final Function noHintDialog;
   final Function dispatchSkip;
   final Function screenShoter;
   final Function resetResetter;
@@ -29,14 +32,18 @@ class Type1Options extends StatefulWidget {
       this.screenShoter,
       this.disAbler,
       this.setWrongCounterOnHints,
-      this.ressetter});
+      this.ressetter,
+        this.reduceHint,
+        this.noHintDialog,
+        this.hintsNo
+
+      });
 
   @override
   _Type1OptionsState createState() => _Type1OptionsState();
 }
 
 class _Type1OptionsState extends State<Type1Options> {
-  int hints=0;
   var selectedItem;
   bool option1;
   bool option2;
@@ -44,16 +51,16 @@ class _Type1OptionsState extends State<Type1Options> {
   bool option4;
   bool hintUsed = false;
 
-  void getHints() async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    hints = prefs.getInt("hints") ?? -1;
-  }
+  // void getHints() async {
+  //   SharedPreferences prefs = await SharedPreferences.getInstance();
+  //   hints = prefs.getInt("hints") ?? -1;
+  // }
 
   @override
   void initState() {
     // TODO: implement initState
     super.initState();
-    getHints();
+ //   getHints();
   }
 
   void resetAll() {
@@ -99,12 +106,12 @@ class _Type1OptionsState extends State<Type1Options> {
                 Expanded(
                   child: GestureDetector(
                     onTap: () async {
-                      if (hints > 0 &&
+                      if (widget.hintsNo > 0 &&
                           widget.disAbler == false &&
                           hintUsed == false) {
-                        SharedPreferences prefs =
-                            await SharedPreferences.getInstance();
-                        prefs.setInt("hints", hints - 1);
+                        // SharedPreferences prefs =
+                        //     await SharedPreferences.getInstance();
+                        widget.reduceHint();
                         for (int i = 0; i < widget.hints.length; i++) {
                           setState(() {
                             if (widget.hints[i] == "1") {
@@ -118,21 +125,15 @@ class _Type1OptionsState extends State<Type1Options> {
                             }
                           });
                         }
-                        getHints();
+                        // getHints();
                         widget.setWrongCounterOnHints();
                         hintUsed = true;
                       }else{
                         //Write code here.
                         // widget.getNewHintsDialog();
-                        Fluttertoast.showToast(
-                            msg: "No hints left.",
-                            toastLength: Toast.LENGTH_SHORT,
-                            gravity: ToastGravity.BOTTOM,
-                            timeInSecForIosWeb: 1,
-                            backgroundColor: Colors.black,
-                            textColor: Colors.white,
-                            fontSize: 16.0
-                        );
+                       if(!hintUsed){
+
+                       }
                       }
                     },
                     child: Container(
@@ -165,7 +166,7 @@ class _Type1OptionsState extends State<Type1Options> {
                               backgroundColor: Colors.white,
                               child: Center(
                                 child: Text(
-                                  "$hints",
+                                  "${widget.hintsNo}",
                                   style: TextStyle(
                                       color: Colors.black,
                                       fontSize: 12,

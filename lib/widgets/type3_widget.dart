@@ -12,10 +12,14 @@ class Type3Options extends StatefulWidget {
   final Function resetResetter;
   final Function screenShoter;
   final Function getNewHintsDialog;
-  final AnimationController animationController;
+  final Function noHintDialog;
+  final Function reduceHint;
 
+  final AnimationController animationController;
+  final hints;
   Type3Options(
       {this.options,
+        this.reduceHint,
       this.resultTrue,
       this.answer,
         this.animationController,
@@ -24,6 +28,8 @@ class Type3Options extends StatefulWidget {
         this.resetResetter,
       this.dispatchSkip,
         this.resetter,
+        this.hints,
+        this.noHintDialog,
       this.screenShoter});
 
   @override
@@ -34,7 +40,7 @@ class _Type3OptionsState extends State<Type3Options> {
 
   bool disabler = false;
   int hintsHead=-1;
-  int hints = 0;
+  // int hints = 0;
   List<Option2> myAnswer = [];
   int writing_head = 0;
   int spaceIndex = null;
@@ -51,10 +57,10 @@ class _Type3OptionsState extends State<Type3Options> {
     }
   }
 
-  void getHints() async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    hints = prefs.getInt("hints") ?? -1;
-  }
+  // void getHints() async {
+  //   SharedPreferences prefs = await SharedPreferences.getInstance();
+  //   widget.hints = prefs.getInt("hints") ?? -1;
+  // }
 
   void setOptions(){
     for (int i = 0; i < widget.options.length; i++) {
@@ -66,6 +72,7 @@ void resetAll(){
     disabler=false;
     myAnswer=[];
     writing_head=0;
+
     spaceIndex=null;
     options=[];
     hintsHead=-1;
@@ -74,10 +81,13 @@ void resetAll(){
 
   @override
   void initState() {
+
+
+
     // TODO: implement initState
     super.initState();
     // resetAll();
-    getHints();
+   // getHints();
     // setOptions();
     // setState(() {
     //   makeBlankItems();
@@ -103,41 +113,48 @@ void resetAll(){
           children: [
             Expanded(
               child: Container(
-                  padding: EdgeInsets.symmetric(horizontal: 10),
-                  child: ListTile(
-                    title: Text(
-                      myAnswer.map((e) => e.text).toList().join(),
-                      style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 25,
-                          color: Colors.white,
-                          letterSpacing: 5),
-                    ),
-                    trailing: IconButton(
-                      onPressed: () {
-                        if (writing_head > 0 && disabler == false&&hintsHead!=writing_head-1) {
-                          setState(() {
-                            myAnswer[writing_head - 1].text = "_";
-                            options[myAnswer[writing_head - 1].index].toggle();
-                            if (writing_head != 0) {
-                              writing_head--;
-                            }
+                padding: EdgeInsets.symmetric(horizontal: 10),
+                child: ListTile(
+                  title: Padding(
 
-                            if (writing_head == spaceIndex + 1 &&
-                                spaceIndex != -1) {
-                              writing_head--;
-                            }
-                          });
-                        }
-                        print("2 = ${writing_head}");
-                      },
-                      icon: Icon(
-                        Icons.backspace,
-                        color: Colors.white,
+                    padding: const EdgeInsets.only(left: 25),
+                    child: Center(
+                      child: Text(
+                        myAnswer.map((e) => e.text).toList().join(),
+                        style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 25,
+                            color: Colors.white,
+                            letterSpacing: 5),
                       ),
                     ),
-                  ),),
+                  ),
+                  trailing: IconButton(
+                    onPressed: () {
+                      if (writing_head > 0 && disabler == false&&hintsHead!=writing_head-1) {
+                        setState(() {
+                          myAnswer[writing_head - 1].text = "_";
+                          options[myAnswer[writing_head - 1].index].toggle();
+                          if (writing_head != 0) {
+                            writing_head--;
+                          }
+
+                          if (writing_head == spaceIndex + 1 &&
+                              spaceIndex != -1) {
+                            writing_head--;
+                          }
+                        });
+                      }
+                      print("2 = ${writing_head}");
+                    },
+                    icon: Icon(
+                      Icons.backspace,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),),
             ),
+            SizedBox(height: 10,),
             Expanded(
                 child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -146,12 +163,15 @@ void resetAll(){
                   child: GestureDetector(
                     onTap: () async {
 
-                      if (hints > 0 && disabler == false) {
-                        SharedPreferences prefs =
-                            await SharedPreferences.getInstance();
-                       prefs.setInt("hints", hints - 1);
-                        getHints();
+                      if (widget.hints > 0 && disabler == false) {
+                       //  SharedPreferences prefs =
+                       //      await SharedPreferences.getInstance();
+                       // prefs.setInt("hints", widget.hints - 1);
+                       //  getHints();
                         // if (writing_head < widget.answerLength) {
+
+                         widget.reduceHint();
+
 
                           for(int i=0;i<myAnswer.length;i++){
                             if(widget.answer[i]!=myAnswer[i].text){
@@ -187,15 +207,18 @@ void resetAll(){
                           }
                         // }
                       }else{
-                        Fluttertoast.showToast(
-                            msg: "No hints left.",
-                            toastLength: Toast.LENGTH_SHORT,
-                            gravity: ToastGravity.BOTTOM,
-                            timeInSecForIosWeb: 1,
-                            backgroundColor: Colors.black,
-                            textColor: Colors.white,
-                            fontSize: 16.0
-                        );
+                        widget.noHintDialog(context);
+
+                        // Fluttertoast.showToast(
+                        //     msg: "No hints left.",
+                        //     toastLength: Toast.LENGTH_SHORT,
+                        //     gravity: ToastGravity.BOTTOM,
+                        //     timeInSecForIosWeb: 1,
+                        //     backgroundColor: Colors.black,
+                        //     textColor: Colors.white,
+                        //     fontSize: 16.0
+                        // );
+
                       }
                     },
                     child: Container(
@@ -227,7 +250,7 @@ void resetAll(){
                             child: CircleAvatar(
                               backgroundColor: Colors.white,
                               child: Text(
-                                "$hints",
+                                "${widget.hints}",
                                 style: TextStyle(color: Colors.black),
                               ),
                               radius: 10,
@@ -386,6 +409,9 @@ void resetAll(){
       ),
     );
   }
+
+
+
 }
 
 class Option {

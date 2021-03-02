@@ -1,0 +1,54 @@
+void _resetAll()async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+
+    lives =await prefs.getInt("lives") ?? -1;
+    if(lives==0){
+      _timer.cancel();
+      loadRewardedVideoAd();
+      setState(() {
+
+        _noLives = true;
+      });
+
+    }else{
+      getCounterFromLocal();
+      startTimer();
+      _timerAnimationController.forward();
+    }
+    rewardRewarded=false;
+    setState(() {
+      _visibleDialog=false;
+      if(quizBrain.getQuestionsNumber()==quizBrain.getQuestionsLength()-1){
+       print("Quiz Ended");
+       setQuizFinishedOnLocal(true);
+       _quizEnded=true;
+       _result=null;
+       _counter=30;
+       setCounterOnLocal(30);
+       _ressetter=true;
+       _timer.cancel();
+      }else{
+        if(_noLives==false){
+        quizBrain.nextQuestion();
+        Timer(Duration(milliseconds:100), (){
+          _animationController.reset();
+          _animationController.forward();
+
+        });
+        setQuestionNumberOnLocal(quizBrain.getQuestionsNumber());
+        _result = null;
+        _counter = 30;
+        setCounterOnLocal(30);
+        _disabler = false;
+        _wrongCount = 0;
+        _ressetter = true;
+        if(lives!=1&&_timerStart){
+          startTimer();
+          _timerAnimationController.forward();
+
+        }
+
+      }
+      }
+    });
+  }

@@ -5,6 +5,7 @@ import 'package:percent_indicator/percent_indicator.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_admob/firebase_admob.dart';
 import 'package:flutter/material.dart';
 import 'package:history_quiz_flutter_app/widgets/features_widget.dart';
 import 'package:history_quiz_flutter_app/widgets/type1_widget.dart';
@@ -18,6 +19,7 @@ import 'dart:typed_data';
 import 'package:path_provider/path_provider.dart';
 import 'package:flutter/rendering.dart';
 QuizBrain quizBrain = QuizBrain();
+const String testDevice = 'ca-app-pub-3940256099942544~3347511713';
 
 class QuizScreen extends StatefulWidget {
   static const QuizRouteName = "/quiz_screen";
@@ -28,9 +30,20 @@ class QuizScreen extends StatefulWidget {
 
 class _QuizScreenState extends State<QuizScreen> with WidgetsBindingObserver,TickerProviderStateMixin {
 
+  static const MobileAdTargetingInfo targetingInfo = MobileAdTargetingInfo(
+    testDevices: testDevice != null ? <String>[testDevice] : null,
+    keywords: <String>['foo', 'bar'],
+    contentUrl: 'http://foo.com/bar.html',
+    childDirected: true,
+    nonPersonalizedAds: true,
+  );
+  int hints=0;
+  int _addType=0;
+  bool _timerStart=true;
   AnimationController _animationController;
   AnimationController _rotationAnimationController;
   AnimationController _scaleAnimationController;
+  bool rewardedVideoAdPlay=false;
   AnimationController _timerAnimationController;
   Animation<double> _scallAnimation;
   Animation<double> _rotationAnimation;
@@ -51,12 +64,18 @@ class _QuizScreenState extends State<QuizScreen> with WidgetsBindingObserver,Tic
   int lives = 0;
   ScreenshotController screenshotController = ScreenshotController();
 
+  bool rewardedVideoAdLoaded = false;
+  bool rewardRewarded=false;
+
   void getLives() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
 
       lives =await prefs.getInt("lives") ?? -1;
       if(lives==0){
+        _timer.cancel();
+          loadRewardedVideoAd();
           setState(() {
+
             _noLives = true;
           });
 
@@ -71,6 +90,18 @@ class _QuizScreenState extends State<QuizScreen> with WidgetsBindingObserver,Tic
   void increaseALife() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
    prefs.setInt("lives", lives+1);
+   getLives();
+  }
+  void reduceAHint() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    prefs.setInt("hints", hints-1);
+    getHintsNo();
+  }
+  void increaseAHint() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    final hinn=await prefs.getInt("hints")?? 0;
+    prefs.setInt("hints", hinn+1);
+    getHintsNo();
   }
 
   void setQuestionNumberOnLocal(value) async {
@@ -106,11 +137,92 @@ class _QuizScreenState extends State<QuizScreen> with WidgetsBindingObserver,Tic
     SharedPreferences prefs = await SharedPreferences.getInstance();
    await prefs.setInt("counter", value);
   }
-  
+
+
+
+
+  void loadRewardedVideoAd() {
+    print("RewardedVideoAd.load() - Called");
+    RewardedVideoAd.instance.load(
+        adUnitId: RewardedVideoAd.testAdUnitId,
+        targetingInfo: MobileAdTargetingInfo(
+          nonPersonalizedAds: true,
+        )
+    ).catchError((error) {
+      print("RewardedVideoAd.load() - Error");
+    }).then((onVal) {
+      print("RewardedVideoAd.load() - Returned ${onVal}");
+      return onVal;
+    }).whenComplete(() {
+      print("RewardedVideoAd.load() - Complete");
+    });
+  }
+  void showRewardedVideoAd ()async {
+
+    setState(() {
+      rewardedVideoAdPlay=true;
+      rewardedVideoAdLoaded = false;
+    });
+  await  RewardedVideoAd.instance.show();
+  }
 
 
   @override
   void initState() {
+    getHintsNo();
+    FirebaseAdMob.instance
+        .initialize(appId: "ca-app-pub-3940256099942544~3347511713");
+
+    RewardedVideoAd.instance.listener =
+        (RewardedVideoAdEvent event, {String rewardType, int rewardAmount}) {
+      if (event == RewardedVideoAdEvent.rewarded) {
+        _timer.cancel();
+
+        print("rewarded $_noLives $_timer");
+        if(_addType==0){
+        increaseALife();
+        // Navigator.of(context).popAndPushNamed(QuizScreen.QuizRouteName);
+
+        setState(() {
+          _noLives=false;
+        });}
+        else if(_addType==1){
+          increaseAHint();
+        }
+        loadRewardedVideoAd();
+        print("RewardedVideoAd.listener - Rewarded");
+      } else if ( event == RewardedVideoAdEvent.loaded ) {
+        print("RewardedVideoAd.listener - Loaded");
+
+      } else if ( event == RewardedVideoAdEvent.opened ) {
+        print("RewardedVideoAd.listener - Opened");
+        loadRewardedVideoAd();
+      } else if ( event == RewardedVideoAdEvent.failedToLoad ) {
+        print("RewardedVideoAd.listener - FailedToLoad");
+        loadRewardedVideoAd();
+
+      } else if ( event == RewardedVideoAdEvent.started ) {
+        print("RewardedVideoAd.listener - Started");
+      } else if ( event == RewardedVideoAdEvent.completed ) {
+        print("RewardedVideoAd.listener - Completed");
+      } else if ( event == RewardedVideoAdEvent.leftApplication ) {
+        print("RewardedVideoAd.listener - Left Application");
+      } else if ( event == RewardedVideoAdEvent.closed ) {
+        _timerStart=false;
+        if(rewardRewarded){
+          setState(() {
+            _noLives=false;
+          });
+
+        }
+        print("RewardedVideoAd.listener - Closed");
+
+      }
+
+    };
+
+    // Load our first RewardedVideoAd
+    loadRewardedVideoAd();
     setQuestionNumberOnApp();
     getCounterFromLocal();
     checkIfQuizFinished();
@@ -151,7 +263,9 @@ class _QuizScreenState extends State<QuizScreen> with WidgetsBindingObserver,Tic
       _timer.cancel();
 
     } else if (state == AppLifecycleState.resumed) {
-      print("State is resumed");
+      print("State is resumed $pauseDialog $lives $_visibleDialog");
+
+      _timer.cancel();
       if (pauseDialog == false&&lives!=0&&_visibleDialog==false) {
         _showPauseDialog(context);
       }
@@ -168,6 +282,14 @@ class _QuizScreenState extends State<QuizScreen> with WidgetsBindingObserver,Tic
     WidgetsBinding.instance.removeObserver(this);
   }
 
+    void getHintsNo()async{
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      final hinn=await prefs.getInt("hints")?? 0;
+      setState(() {
+        hints=hinn;
+      });
+
+    }
   void startTimer() {
     if (_timer != null) {
       _timer.cancel();
@@ -179,7 +301,7 @@ class _QuizScreenState extends State<QuizScreen> with WidgetsBindingObserver,Tic
           _counter--;
           setCounterOnLocal(_counter);
         } else {
-          setState(() {
+
             _timer.cancel();
             _feedbackVisible = true;
             _answer = false;
@@ -187,7 +309,7 @@ class _QuizScreenState extends State<QuizScreen> with WidgetsBindingObserver,Tic
             _disabler = true;
             _reduceLive2();
             _showResultIcon();
-          });
+
 
 
           _timer.cancel();
@@ -232,19 +354,23 @@ class _QuizScreenState extends State<QuizScreen> with WidgetsBindingObserver,Tic
                     ),
                     Container(
                       child: RaisedButton(
-                        onPressed: ()async{
-                          setState(() {
-                            increaseALife();
-                            getLives();
-                              _noLives=false;
-                              _counter=30;
-                              setCounterOnLocal(30);
-                              startTimer();
-                            _timerAnimationController.forward();
-
-
-
+                        onPressed:  ()async{
+                          _addType=0;
+                          RewardedVideoAd.instance.load(
+                              adUnitId: RewardedVideoAd.testAdUnitId,
+                              targetingInfo: MobileAdTargetingInfo(
+                                nonPersonalizedAds: true,
+                              )
+                          ).catchError((error) {
+                            print("RewardedVideoAd.load() - Error");
+                          }).then((onVal) {
+                            print("RewardedVideoAd.load() - Returned ${onVal}");
+                            return onVal;
+                          }).whenComplete(() {
+                            showRewardedVideoAd();
+                            print("RewardedVideoAd.load() - Complete");
                           });
+
                         },
                         color: Colors.deepOrangeAccent,
                         child: Container(
@@ -399,6 +525,9 @@ class _QuizScreenState extends State<QuizScreen> with WidgetsBindingObserver,Tic
                       Container(child:
                       quizBrain.getQuestionType() == "1"
                           ? Type1Options(
+                        reduceHint:reduceAHint,
+                        hintsNo: hints,
+                        noHintDialog:_showNoHintsDialog,
                         animationController: _animationController,
 
                               resetResetter: () {
@@ -451,7 +580,7 @@ class _QuizScreenState extends State<QuizScreen> with WidgetsBindingObserver,Tic
                                       _reduceLive();
                                       _result = false;
                                     }
-                                    print(_wrongCount);
+
                                   });
                                 }
                                 // _showResultIcon();
@@ -459,12 +588,14 @@ class _QuizScreenState extends State<QuizScreen> with WidgetsBindingObserver,Tic
                             )
                           : quizBrain.getQuestionType() == "2"
                               ? Type2Options(
+
                         animationController: _animationController,
                                   screenShoter: () {
                                     takeScreenShotAndShare();
                                   },
                                   result: _result,
                                   dispatchSkip: () {
+                          _timer.cancel();
                                     _dispatchSkip();
                                   },
                                   checkAnswer: (input) {
@@ -478,6 +609,9 @@ class _QuizScreenState extends State<QuizScreen> with WidgetsBindingObserver,Tic
                                 )
                               :quizBrain.getQuestionType() == "3"?Type3Options(
                         animationController: _animationController,
+                                  reduceHint:reduceAHint,
+                                  hints: hints,
+                                  noHintDialog:_showNoHintsDialog,
                                   resetResetter: () {
                                     _ressetter = false;
                                   },
@@ -555,6 +689,7 @@ class _QuizScreenState extends State<QuizScreen> with WidgetsBindingObserver,Tic
     } else {
       _reduceLive2();
       setState(() {
+
         _feedbackVisible = true;
         _answer = false;
         _result = false;
@@ -615,19 +750,30 @@ class _QuizScreenState extends State<QuizScreen> with WidgetsBindingObserver,Tic
 
    });
   }
-  void _resetAll() {
-    setState(() {
-      _visibleDialog=false;
-      if(quizBrain.getQuestionsNumber()==quizBrain.getQuestionsLength()-1){
-       print("Quiz Ended");
-       setQuizFinishedOnLocal(true);
-       _quizEnded=true;
-       _result=null;
-       _counter=30;
-       setCounterOnLocal(30);
-       _ressetter=true;
-       _timer.cancel();
+  void _resetAll()async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    lives =await prefs.getInt("lives") ?? -1;
+    if(lives==0){
+      pauseDialog == false;
+      if(quizBrain.getQuestionsNumber()==quizBrain.getQuestionsLength()-1) {
+        setQuizFinishedOnLocal(true);
+        _quizEnded=true;
+        _result=null;
+        _counter=30;
+        _visibleDialog=false;
+        setCounterOnLocal(30);
+        _ressetter=true;
+        _timer.cancel();
       }else{
+        _counter=30;
+        _result=null;
+        setCounterOnLocal(30);
+        _timer.cancel();
+        _visibleDialog=false;
+        loadRewardedVideoAd();
+        setState(() {
+          _noLives = true;
+        });
         quizBrain.nextQuestion();
         Timer(Duration(milliseconds:100), (){
           _animationController.reset();
@@ -641,16 +787,47 @@ class _QuizScreenState extends State<QuizScreen> with WidgetsBindingObserver,Tic
         _disabler = false;
         _wrongCount = 0;
         _ressetter = true;
-        if(lives!=1){
-          startTimer();
-
-          _timerAnimationController.forward();
-
-        }
-
       }
 
-    });
+    }else{
+      rewardRewarded=false;
+      setState(() {
+        _visibleDialog=false;
+        if(quizBrain.getQuestionsNumber()==quizBrain.getQuestionsLength()-1){
+          print("Quiz Ended");
+          setQuizFinishedOnLocal(true);
+          _quizEnded=true;
+          _result=null;
+          _counter=30;
+          setCounterOnLocal(30);
+          _ressetter=true;
+          _timer.cancel();
+        }else{
+
+            quizBrain.nextQuestion();
+            Timer(Duration(milliseconds:100), (){
+              _animationController.reset();
+              _animationController.forward();
+
+            });
+            setQuestionNumberOnLocal(quizBrain.getQuestionsNumber());
+            _result = null;
+            _counter = 30;
+            setCounterOnLocal(30);
+            _disabler = false;
+            _wrongCount = 0;
+            _ressetter = true;
+            startTimer();
+            _timerAnimationController.forward();
+
+
+        }
+      });
+
+
+
+    }
+
   }
 
 
@@ -684,7 +861,7 @@ class _QuizScreenState extends State<QuizScreen> with WidgetsBindingObserver,Tic
                     )),
                   ),
                   Container(
-                      padding: EdgeInsets.only(top: 10.0),
+                      padding: EdgeInsets.only(top: 10.0,left: 10,right: 10),
                       child: Text(
                         _result
                             ? "Excellent"
@@ -752,9 +929,173 @@ class _QuizScreenState extends State<QuizScreen> with WidgetsBindingObserver,Tic
           );
         });
     _resetAll();
-    getLives();
+
   }
 
+  Future _showNoHintsDialog(BuildContext context) async {
+    pauseDialog = true;
+    _timer.cancel();
+    await showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) {
+          return Dialog(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(30.0),
+            ),
+            child: Container(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [Colors.blueAccent, Colors.white],
+                  stops: [0.6, 1.3],
+                ),
+              ),
+              height: 400,
+              child: Column(
+                children: [
+                  Expanded(
+                    flex: 2,
+                    child: Center(
+                      child: Container(
+                        child: CircleAvatar(
+                          radius: 60,
+                          backgroundImage: AssetImage('assets/pause.png'),
+                        ),
+                      ),
+                    ),
+                  ),
+                  Expanded(
+                    child: Container(
+                      padding: EdgeInsets.symmetric(horizontal: 10),
+                      child: Column(
+                        children: [
+                          RaisedButton(
+                            onPressed: ()async {
+                              _addType=1;
+                              RewardedVideoAd.instance.load(
+                                  adUnitId: RewardedVideoAd.testAdUnitId,
+                                  targetingInfo: MobileAdTargetingInfo(
+                                    nonPersonalizedAds: true,
+                                  )
+                              ).catchError((error) {
+                                print("RewardedVideoAd.load() - Error");
+                              }).then((onVal) {
+                                print("RewardedVideoAd.load() - Returned ${onVal}");
+                                return onVal;
+                              }).whenComplete(() {
+                                showRewardedVideoAd();
+                                print("RewardedVideoAd.load() - Complete");
+                              });
+                            },
+                            color: Colors.deepOrangeAccent,
+                            child: Container(
+                              margin: EdgeInsets.symmetric(horizontal: 10),
+                              padding: EdgeInsets.symmetric(vertical: 10),
+                              width: double.infinity,
+                              child: Text(
+                                "Get a free hint",
+                                textAlign: TextAlign.center,
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 18,
+                                ),
+                              ),
+                            ),
+                          ),
+                          RaisedButton(
+                            onPressed: () {
+                              Navigator.pop(context);
+                              startTimer();
+                            },
+                            color: Colors.green,
+                            child: Container(
+                              width: double.infinity,
+                              child: Text(
+                                "Resume",
+                                textAlign: TextAlign.center,
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 18,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  )
+                ],
+              ),
+            ),
+          );
+        });
+
+    pauseDialog = false;
+    // if(lives!=0){
+    startTimer();
+    _timerAnimationController.forward();
+    // }
+  }
+
+  Future _showNoLivesDialog(BuildContext context) async {
+    pauseDialog = true;
+    await showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) {
+          return Dialog(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(30.0),
+            ),
+            child: Container(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [Colors.blueAccent, Colors.white],
+                  stops: [0.6, 1.3],
+                ),
+              ),
+              height: 400,
+              child: Column(
+                children: [
+                  Expanded(
+                    flex: 2,
+                    child: Center(
+                      child: Container(
+                        child: CircleAvatar(
+                          radius: 60,
+                          backgroundImage: AssetImage('assets/pause.png'),
+                        ),
+                      ),
+                    ),
+                  ),
+                  Expanded(
+                    child: Container(
+                      padding: EdgeInsets.symmetric(horizontal: 10),
+                      child: Text("Get More Lives"),
+                    ),
+                  )
+                ],
+              ),
+            ),
+          );
+        });
+    Navigator.of(context).pop();
+  }
+
+  _dispatchSkip(){
+    _timer.cancel();
+    setState(() {
+      _feedbackVisible = true;
+      _answer = false;
+      _result = false;
+      _disabler = true;
+      _showResultIcon();
+    });
+ }
   Future _showPauseDialog(BuildContext context) async {
     pauseDialog = true;
     await showDialog(
@@ -847,61 +1188,4 @@ class _QuizScreenState extends State<QuizScreen> with WidgetsBindingObserver,Tic
     _timerAnimationController.forward();
     // }
   }
-
-  Future _showNoLivesDialog(BuildContext context) async {
-    pauseDialog = true;
-    await showDialog(
-        context: context,
-        barrierDismissible: false,
-        builder: (context) {
-          return Dialog(
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(30.0),
-            ),
-            child: Container(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [Colors.blueAccent, Colors.white],
-                  stops: [0.6, 1.3],
-                ),
-              ),
-              height: 400,
-              child: Column(
-                children: [
-                  Expanded(
-                    flex: 2,
-                    child: Center(
-                      child: Container(
-                        child: CircleAvatar(
-                          radius: 60,
-                          backgroundImage: AssetImage('assets/pause.png'),
-                        ),
-                      ),
-                    ),
-                  ),
-                  Expanded(
-                    child: Container(
-                      padding: EdgeInsets.symmetric(horizontal: 10),
-                      child: Text("Get More Lives"),
-                    ),
-                  )
-                ],
-              ),
-            ),
-          );
-        });
-    Navigator.of(context).pop();
-  }
-
-  _dispatchSkip(){
-    setState(() {
-      _feedbackVisible = true;
-      _answer = false;
-      _result = false;
-      _disabler = true;
-      _showResultIcon();
-    });
- }
 }

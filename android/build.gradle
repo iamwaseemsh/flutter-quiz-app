@@ -5,7 +5,9 @@ buildscript {
     }
 
     dependencies {
-        classpath 'com.android.tools.build:gradle:3.5.0'
+        classpath 'com.android.tools.build:gradle:3.5.4'
+        // Example existing classpath
+        // Add the google services classpath
         classpath 'com.google.gms:google-services:4.3.5'
     }
 }
