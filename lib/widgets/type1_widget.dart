@@ -49,6 +49,10 @@ class _Type1OptionsState extends State<Type1Options> {
   bool option2;
   bool option3;
   bool option4;
+  bool hintOption1;
+  bool hintOption2;
+  bool hintOption3;
+  bool hintOption4;
   bool hintUsed = false;
 
   // void getHints() async {
@@ -66,6 +70,7 @@ class _Type1OptionsState extends State<Type1Options> {
   void resetAll() {
     if (widget.ressetter == true) {
       option1 = option2 = option3 = option4 = null;
+      hintOption1 = hintOption2 = hintOption1 = hintOption1 = null;
       hintUsed = false;
     }
   }
@@ -115,13 +120,13 @@ class _Type1OptionsState extends State<Type1Options> {
                         for (int i = 0; i < widget.hints.length; i++) {
                           setState(() {
                             if (widget.hints[i] == "1") {
-                              option1 = false;
+                              hintOption1 = false;
                             } else if (widget.hints[i] == "2") {
-                              option2 = false;
+                              hintOption2 = false;
                             } else if (widget.hints[i] == "3") {
-                              option3 = false;
+                              hintOption3 = false;
                             } else if (widget.hints[i] == "4") {
-                              option4 = false;
+                              hintOption4 = false;
                             }
                           });
                         }
@@ -295,7 +300,7 @@ class _Type1OptionsState extends State<Type1Options> {
                               ? Colors.green
                               : option1 == false
                                   ? Colors.red
-                                  : Color.fromRGBO(244, 243, 243, 0.1),
+                                  : hintOption1==false?Colors.blue:Color.fromRGBO(244, 243, 243, 0.1),
                   child: Center(
                       child: Text(
                     "${widget.options[0]}",
@@ -330,7 +335,7 @@ class _Type1OptionsState extends State<Type1Options> {
                               ? Colors.green
                               : option2 == false
                                   ? Colors.red
-                                  : Color.fromRGBO(244, 243, 243, 0.1),
+                      : hintOption2==false?Colors.blue:Color.fromRGBO(244, 243, 243, 0.1),
                   child: Center(
                       child: Text(
                     "${widget.options[1]}",
@@ -366,7 +371,7 @@ class _Type1OptionsState extends State<Type1Options> {
                               ? Colors.green
                               : option3 == false
                                   ? Colors.red
-                                  : Color.fromRGBO(244, 243, 243, 0.1),
+                      : hintOption3==false?Colors.blue:Color.fromRGBO(244, 243, 243, 0.1),
                   child: Center(
                       child: Text(
                     "${widget.options[2]}",
@@ -402,7 +407,7 @@ class _Type1OptionsState extends State<Type1Options> {
                               ? Colors.green
                               : option4 == false
                                   ? Colors.red
-                                  : Color.fromRGBO(244, 243, 243, 0.1),
+                      : hintOption4==false?Colors.blue:Color.fromRGBO(244, 243, 243, 0.1),
                   // color:widget.result==true&&selectedItem==3?Colors.lightGreen:widget.result==false&&selectedItem==3?Colors.red:Color.fromRGBO(244, 243, 243, 0.1),
                   child: Center(
                       child: Text(
