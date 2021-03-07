@@ -134,11 +134,23 @@ class _Type1OptionsState extends State<Type1Options> {
                         widget.setWrongCounterOnHints();
                         hintUsed = true;
                       }else{
+                        if(hintUsed==false){
+                          widget.noHintDialog(context);
+                        }else{
+                          Fluttertoast.showToast(
+                              msg: "No hints left!.",
+                              toastLength: Toast.LENGTH_SHORT,
+                              gravity: ToastGravity.BOTTOM,
+                              timeInSecForIosWeb: 1,
+                              backgroundColor: Colors.black,
+                              textColor: Colors.white,
+                              fontSize: 16.0
+                          );
+                        }
+
                         //Write code here.
                         // widget.getNewHintsDialog();
-                       if(!hintUsed){
 
-                       }
                       }
                     },
                     child: Container(

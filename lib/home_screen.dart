@@ -56,12 +56,8 @@ class _HomeScreenState extends State<HomeScreen> {
 
     }
     QuizBrain().setQuestionNumber(questionNumber);
-    final hints = await prefs.getInt("hints") ?? -1;
-    final lives = await prefs.getInt("lives") ?? -1;
-
-    setState(() {
-      _lives=lives;
-    });
+    final hints = await prefs.getInt("hints") ?? 0;
+    var lives = await prefs.getInt("lives") ?? -1;
 
     if (hints < 0) {
       await prefs.setInt("hints", 10);
@@ -69,13 +65,26 @@ class _HomeScreenState extends State<HomeScreen> {
     }
     if (lives < 0) {
       await prefs.setInt("lives", 10);
+      lives = await prefs.getInt("lives");
+      setState(() {
+        _lives=lives;
+      });
       print("hints are $lives");
     }
-  }
 
+  }
+  Future<void> _getLives()async{
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    var lives = await prefs.getInt("lives");
+    lives = await prefs.getInt("lives");
+    setState(() {
+      _lives=lives;
+    });
+  }
   void getSolvedQuestionsNumber() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     int temp=await prefs.getInt("qno") ?? 0;
+
     setState(() {
       solvedQuestion = temp;
     });
@@ -85,7 +94,7 @@ class _HomeScreenState extends State<HomeScreen> {
   void initState() {
     getQuestionFromDB();
     checkIfQuizFinished();
-    setData();
+      setData();
     // TODO: implement initState
     super.initState();
 
@@ -136,8 +145,10 @@ class _HomeScreenState extends State<HomeScreen> {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               GestureDetector(
-                onTap: (){
-                  Navigator.of(context).push(MaterialPageRoute(builder: (ctx)=>PaymnetScreen()));
+                onTap: ()async{
+                 await Navigator.of(context).push(MaterialPageRoute(builder: (ctx)=>PaymnetScreen()));
+                 _getLives();
+
                 },
 
                 child: Padding(

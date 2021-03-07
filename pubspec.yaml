@@ -40,6 +40,8 @@ dependencies:
   share: ^0.6.5+4
   rating_dialog: ^1.0.0
   url_launcher: ^5.7.10
+  stripe_payment: ^1.0.10
+
 
 
 
